@@ -25,6 +25,7 @@ required_apps = ["erpnext"]
 # Includes in <head>
 # ------------------
 
+
 # include js, css files in header of desk.html
 app_include_css = "/assets/gate_entry/css/gate_pass.css"
 # app_include_js = "/assets/gate_entry/js/gate_entry.js"
@@ -145,6 +146,9 @@ after_uninstall = "gate_entry.setup.uninstall.after_uninstall"
 # Hook on document methods and events
 # These handlers clean up Gate Pass references when receipts are deleted/cancelled
 doc_events = {
+	"Gate Pass": {
+		"autoname": "gate_entry.naming_series.before_insert"
+	},
 	"Purchase Receipt": {
 		"on_trash": "gate_entry.gate_entry.doctype.gate_pass.gate_pass.on_purchase_receipt_trash",
 		"on_cancel": "gate_entry.gate_entry.doctype.gate_pass.gate_pass.on_purchase_receipt_cancel",

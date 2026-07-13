@@ -397,6 +397,7 @@ class GatePass(Document):
 
 			self.populate_reference_defaults(doc_for_defaults)
 			self.ensure_company_matches_reference(doc_for_defaults)
+			self.sync_dimension_fields_from_reference(doc_for_defaults)
 
 			if self.is_inbound_reference():
 				self.validate_supplier(doc_for_defaults)
@@ -764,6 +765,34 @@ class GatePass(Document):
 					self.company, reference_company
 				)
 			)
+
+	def sync_dimension_fields_from_reference(self, reference_doc):
+		"""
+		Pull Cost Center and Branch from the reference document.
+
+		Reference doctypes that don't define these fields are skipped. Reference
+		doctypes that do define them but leave them blank block the save, since
+		the Gate Pass would otherwise be missing a required accounting dimension.
+		"""
+		if not reference_doc:
+			return
+
+		reference_meta = frappe.get_meta(reference_doc.doctype)
+		dimensions = extract_dimension_fields(reference_doc)
+
+		for fieldname, label in (("cost_center", _("Cost Center")), ("branch", _("Branch"))):
+			if not reference_meta.has_field(fieldname):
+				continue
+
+			value = dimensions.get(fieldname)
+			if not value:
+				frappe.throw(
+					_("{0} {1} does not have a {2} set. Please set it before creating a Gate Pass.").format(
+						reference_doc.doctype, reference_doc.name, label
+					)
+				)
+
+			self.set(fieldname, value)
 
 	def validate_reference_document(self):
 		"""
@@ -1243,6 +1272,18 @@ def extract_transport_details(doc):
 	}
 
 
+def extract_dimension_fields(doc):
+	"""
+	Extract Cost Center and Branch from a reference document, only for fields
+	the reference doctype actually defines.
+	"""
+	meta = frappe.get_meta(doc.doctype)
+	return {
+		"cost_center": doc.get("cost_center") if meta.has_field("cost_center") else None,
+		"branch": doc.get("branch") if meta.has_field("branch") else None,
+	}
+
+
 def extract_compliance_details(doc, document_reference):
 	"""
 	Extract e-invoice and e-waybill information from outbound reference documents
@@ -1435,6 +1476,7 @@ def get_reference_details(document_reference, reference_number):
 
 	doc = frappe.get_doc(document_reference, reference_number)
 	transport = extract_transport_details(doc)
+	dimensions = extract_dimension_fields(doc)
 
 	details = {
 		"company": getattr(doc, "company", None),
@@ -1442,6 +1484,8 @@ def get_reference_details(document_reference, reference_number):
 		"vehicle_number": transport.get("vehicle_number"),
 		"driver_name": transport.get("driver_name"),
 		"driver_contact": transport.get("driver_contact"),
+		"cost_center": dimensions.get("cost_center"),
+		"branch": dimensions.get("branch"),
 		"posting_date": getattr(doc, "posting_date", None),
 		"posting_time": getattr(doc, "posting_time", None),
 		"document_date": getattr(doc, "transaction_date", None)
@@ -1566,6 +1610,14 @@ def create_purchase_receipt(gate_pass_name):
 	# set the vehicle number and driver name from gate pass
 	pr.vehicle_no = gate_pass.vehicle_number
 	pr.driver_name = gate_pass.driver_name
+
+	# Cost Center and Branch are mandatory on Purchase Receipt; carry them over
+	# from the Gate Pass (synced from the reference document) with a fallback
+	# to the Purchase Order itself
+	if hasattr(pr, "cost_center"):
+		pr.cost_center = gate_pass.get("cost_center") or purchase_order.get("cost_center")
+	if hasattr(pr, "branch"):
+		pr.branch = gate_pass.get("branch") or purchase_order.get("branch")
 
 	# Add items - fetch complete details from Purchase Order Item and override quantities from Gate Pass
 	for gate_pass_item in gate_pass.gate_pass_table:

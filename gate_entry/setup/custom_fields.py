@@ -36,6 +36,27 @@ SUBCONTRACTING_RECEIPT_FIELDS = [
 	},
 ]
 
+GATE_PASS_FIELDS = [
+	{
+		"fieldname": "cost_center",
+		"label": "Cost Center",
+		"fieldtype": "Link",
+		"options": "Cost Center",
+		"insert_after": "manual_return_flow",
+		"translatable": 0,
+		"description": "Auto-filled from the reference document when it defines a Cost Center.",
+	},
+	{
+		"fieldname": "branch",
+		"label": "Branch",
+		"fieldtype": "Link",
+		"options": "Branch",
+		"insert_after": "cost_center",
+		"translatable": 0,
+		"description": "Auto-filled from the reference document when it defines a Branch.",
+	},
+]
+
 STOCK_ENTRY_FIELDS = [
 	{
 		"fieldname": "ge_external_transfer",
@@ -81,4 +102,5 @@ def get_custom_fields():
 		"Purchase Receipt": PURCHASE_RECEIPT_FIELDS,
 		"Subcontracting Receipt": SUBCONTRACTING_RECEIPT_FIELDS,
 		"Stock Entry": STOCK_ENTRY_FIELDS,
+		"Gate Pass": GATE_PASS_FIELDS,
 	}

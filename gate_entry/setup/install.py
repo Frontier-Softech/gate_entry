@@ -44,6 +44,7 @@ def after_install():
 def after_migrate():
 	"""Ensure reports and custom fields exist after migrations."""
 
+	create_gate_entry_custom_fields()
 	ensure_reports()
 	ensure_security_guard_permissions()
 	reload_gate_pass_doctype()

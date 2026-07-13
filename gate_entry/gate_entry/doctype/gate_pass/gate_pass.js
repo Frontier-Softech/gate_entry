@@ -397,6 +397,13 @@ function load_reference_details(frm) {
 				updates.address_display = details.address_display;
 			}
 
+			if (details.cost_center) {
+				updates.cost_center = details.cost_center;
+			}
+			if (details.branch) {
+				updates.branch = details.branch;
+			}
+
 			updates.e_invoice_status = details.e_invoice_status || null;
 			updates.e_invoice_reference = details.e_invoice_reference || null;
 			updates.e_waybill_status = details.e_waybill_status || null;
